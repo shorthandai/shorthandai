@@ -1,5 +1,7 @@
 from typing import NewType
 import requests
+import warnings
+import os
 
 def quicktext():
     print('Hello, welcome to QuickSample package.')
@@ -19,8 +21,13 @@ class ShorthandValue:
         return
 
 class ShorthandAI:
-    def __init__(self, token: str):
-        self.__token = token
+    def __init__(self, token: str=None):
+        self.__token = token if (token and len(token)) else os.environ.get("SHORTHANDAI_TOKEN")
+        if not (token and len(token)):
+            warnings.warn(
+                'ShorthandAI initialized with no token. Either provide one via the constructor '
+                'or expose it via the SHORTHANDAI_TOKEN environment variable'
+            )
         return
     
     def value(
@@ -37,7 +44,10 @@ class ShorthandAI:
             ):
         pass
 
-    def hget(self, topic_id, since=None):
+    def GET(self, *args, **kwargs):
+        return self.get(*args, **kwargs)
+
+    def geth(self, topic_id, since=None):
         pass
     
     def set(
@@ -52,4 +62,14 @@ class ShorthandAI:
         pass
 
     def info(self):
-        pass
+        return ({
+            "version": '0.0.1',
+        })
+
+def main():
+    SH = ShorthandAI()
+    print(SH.info())
+    return
+
+if __name__=="__main__":
+    main()
