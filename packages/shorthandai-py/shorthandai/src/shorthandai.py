@@ -1,8 +1,8 @@
 from typing import NewType
+import requests
 
 def quicktext():
     print('Hello, welcome to QuickSample package.')
-
 
 class ShorthandValue:
     def __init__(self, topic_id):
