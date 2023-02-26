@@ -2,9 +2,17 @@ from typing import NewType
 import requests
 import warnings
 import os
+import datetime
 
 def quicktext():
     print('Hello, welcome to QuickSample package.')
+
+def check_value_inputs(token: str, topic_id=None):
+    if not (token and len(token)):
+        warnings.warn(
+            'ShorthandAI initialized with no token. Either provide one via the constructor '
+            'or expose it via the SHORTHANDAI_TOKEN environment variable'
+        )
 
 class ShorthandValue:
     def __init__(self, topic_id):
@@ -36,39 +44,53 @@ class ShorthandAI:
             ):
         return ShorthandValue(topic_id)
     
-    def get(
-            self, 
-            topic_id, 
-            tag="latest",
-            take_header=True,
-            ):
-        pass
+    def get(self, topic_id: str, tag: str=None):
+        """
+        Given `topic_id`, returns the latest value
+        """
+        check_value_inputs(self.__token, topic_id=topic_id)
 
-    def GET(self, *args, **kwargs):
-        return self.get(*args, **kwargs)
-
-    def geth(self, topic_id, since=None):
-        pass
+        return ({
+            "token": self.__token
+        })
     
-    def set(
-            self, 
-            topic_id, 
-            value,
-            tag=None
-            ):
-        
-        tag_name = None if (tag == 'latest') else tag
 
-        pass
+    def geth(self, topic_id: str, since: str=datetime.datetime, tag: str=None):
+        """
+        Given `topic_id` and `since`, returns the last value since 
+        """
+        check_value_inputs(self.__token, topic_id=topic_id)
 
+        return ({
+            "token": self.__token
+        })
+
+
+    def set(self, topic_id: str, value):
+        """
+        Given `topic_id`, writes `value` to Shorthand
+        """
+        check_value_inputs(self.__token, topic_id=topic_id)
+
+        return ({
+            "token": self.__token
+        })
+
+    GET = get
+    GETH = geth
+    SET = set
+    
     def info(self):
         return ({
             "version": '0.0.1',
         })
 
+SH = ShorthandAI()
+
 def main():
-    SH = ShorthandAI()
     print(SH.info())
+    print(SH.GET('dev123', 'latest'))
+    print(SH.GETH('dev123', datetime.datetime(2022, 12, 31)))
     return
 
 if __name__=="__main__":
