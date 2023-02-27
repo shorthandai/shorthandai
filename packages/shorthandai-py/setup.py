@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="shorthandai",                     # This is the name of the package
-    version="0.0.2",                        # The initial release version
+    version="0.0.4",                        # The initial release version
     author="Habanero Research LLC",                     # Full name of the author
     description="Python utilities for interacting with ShorthandAI data",
     long_description=long_description,      # Long description read from the the readme file

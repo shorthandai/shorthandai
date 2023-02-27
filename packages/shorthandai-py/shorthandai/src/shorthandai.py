@@ -8,91 +8,14 @@ import pandas as pd
 import json
 
 __SHORTHAND_AI_TOKEN_ENV_VAR_NAME__ = "SHORTHANDAI_TOKEN"
-__API_ROOT_URL__ = "https://apiv1.shorthand.ai/api/v1/"
+__API_ROOT_URL__ = "https://apiv1.shorthand.ai/api/v1"
 
-def __get_effective_value_dimensions(raw):
-    if type(raw) != list:
-        return 0, 0
-
-    if len(raw) == 0:
-        return 0, 0
-
-    if len(raw) == 1:
-        if type(raw[0]) != list:
-            return 0, 0
-
-        if len(raw[0]) < 1:
-            return 0, 0
-
-        return len(raw[0]), 0
-
-    else:
-        if type(raw[0]) != list:
-            return 0, 0
-
-        if len(raw[0]) < 1:
-            return 0, 0
-
-        return len(raw), len(raw[0])
-
-def __get_raw_value_dimensions(raw):
+def get_raw_value_dimensions(raw):
     # // if pandas df
     if type(raw) != list: return 0, 0
     if len(raw) == 0: return 0, 0
     if type(raw[0]) != list: return len(raw), 0
     else: return len(raw), len(raw[0])
-
-def __pack_up_raw_shvalue(raw):
-    n, m = __get_raw_value_dimensions(raw)
-
-    if n > 0 and m > 0:
-        return ({
-            "blob": json.dumps(raw),
-            "isSHArrayWrapper": True,
-        })
-
-    else:
-        return raw
-
-def __unpack_sh_value_doc(doc):
-    raw = doc['value'] if 'value' in doc else None
-
-    if type(raw) == dict:
-        if 'isSHArrayWrapper' in raw:
-            return json.loads(
-                raw['blob']
-            ), 'MATRIX'
-
-    if type(raw) == list:
-        return raw, 'VECTOR'
-
-    return raw, 'SCALAR'
-
-
-# def get(key, tag=None, domainID='demo'):
-#     data = get_raw(key, tag, domainID)
-#     value, t = unpack_sh_value_doc(data)
-
-#     if t == 'MATRIX':
-#         return pd.DataFrame(value[1:], columns=[value[0]])
-
-#     elif t == 'VECTOR':
-#         return np.array(value)
-
-#     return value
-
-# def getdf(key, tag=None, domainID='demo'):
-#     data = get_raw(key, tag, domainID)
-#     value, t = unpack_sh_value_doc(data)
-
-#     if t == 'MATRIX':
-#         return pd.DataFrame(value[1:], columns=[value[0]])
-
-#     elif t == 'VECTOR':
-#         return pd.DataFrame(value)
-
-#     return pd.DataFrame([value])
-
 
 def check_value_inputs(token: str, topic_name=None):
     if not (token and len(token)):
@@ -131,41 +54,93 @@ class ShorthandAI:
             ):
         return ShorthandValue(topic_name)
     
-    def get(self, topic_name: str, tag: str=None):
+    def get_raw(self, topic_name: str, tag: str=None, take_df_header=True):
         """
-        Given `topic_name`, returns the latest value
+        Given `topic_name`, returns the latest value as well as metadata 
+        on the topic.
         """
         check_value_inputs(self.__token, topic_name=topic_name)
         res = requests.post(
             f"{__API_ROOT_URL__}/get",
             json={
+                "topicName": topic_name,
+                "tag": tag,
                 "token": self.__token
             }
         )
-        data = res
-        status_code = res.status_code
 
+        status_code = res.status_code
         if (res.status_code >= 400 and res.status_code  <= 500):
             raise Exception(f"ERR {status_code}") 
         
         if (res.status_code >= 500):
             raise Exception(f"ERR {status_code}") 
+        
+        data = res.json()
 
-        return ({
-            "token": self.__token,
-            "data": data
-        })
+        return data
+    
+    def get(self, topic_name: str, tag: str=None, take_df_header=True):
+        """
+        Given `topic_name`, returns the latest value
+        """
+        check_value_inputs(self.__token, topic_name=topic_name)
+        data = self.get_raw(
+            topic_name,
+            tag=tag,
+            take_df_header=take_df_header
+        )
+        value = data['value'] if 'value' in data else None
+        if take_df_header:
+            n, m =  get_raw_value_dimensions(value)
+            if n > 0 and m > 0:
+                return pd.DataFrame(value[1:], columns=[value[0]])
+
+            if n > 0 or m > 0:
+                return pd.DataFrame(value)
+
+        return value
     
 
-    def geth(self, topic_name: str, since: str=datetime.datetime, tag: str=None):
+    def geth(
+            self, 
+            topic_name: str, 
+            since: str=datetime.datetime, 
+            # tag: str=None,
+            take_df_header=True,
+        ):
         """
         Given `topic_name` and `since`, returns the last value since 
         """
         check_value_inputs(self.__token, topic_name=topic_name)
+        res = requests.post(
+            f"{__API_ROOT_URL__}/geth",
+            json={
+                "topicName": topic_name,
+                "sinceTS": int(since.timestamp() * 1000),
+                "token": self.__token
+            }
+        )
 
-        return ({
-            "token": self.__token
-        })
+        status_code = res.status_code
+        if (res.status_code >= 400 and res.status_code  <= 500):
+            raise Exception(f"ERR {status_code}") 
+        
+        if (res.status_code >= 500):
+            raise Exception(f"ERR {status_code}") 
+        
+        data = res.json()
+        value = data['value'] if 'value' in data else None
+
+        if take_df_header:
+            n, m =  get_raw_value_dimensions(value)
+            if n > 0 and m > 0:
+                return pd.DataFrame(value[1:], columns=[value[0]])
+
+            if n > 0 or m > 0:
+                return pd.DataFrame(value)
+
+        return value
 
 
     def set(self, topic_name: str, value):
@@ -174,9 +149,32 @@ class ShorthandAI:
         """
         check_value_inputs(self.__token, topic_name=topic_name)
 
-        return ({
-            "token": self.__token
-        })
+        value_out = value
+        if isinstance(value, pd.DataFrame):
+            value_out = value.values.tolist()
+            first_row = list(value.columns.values)
+            value_out = [first_row] + value_out
+
+        res = requests.post(
+            f"{__API_ROOT_URL__}/set",
+            json={
+                "topicName": topic_name,
+                "value": value_out,
+                "token": self.__token
+            }
+        )
+
+        status_code = res.status_code
+        if (res.status_code >= 400 and res.status_code  <= 500):
+            raise Exception(f"ERR {status_code}") 
+        
+        if (res.status_code >= 500):
+            raise Exception(f"ERR {status_code}") 
+        
+        data = res.json()
+        value = data['value'] if 'value' in data else None
+
+        return data
 
     GET = get
     GETH = geth
@@ -184,15 +182,37 @@ class ShorthandAI:
     
     def info(self):
         return ({
-            "version": '0.0.1',
+            "version": '0.0.4',
         })
-
-
 
 def main():
     SH = ShorthandAI('demo')
     print(SH.info())
-    print(SH.GET('dev123', 'latest'))
+    print(SH.GET('dev123', '1659994710026'))
+    print(SH.GET('dev123', 'notexists'))
+    print(SH.GET('dev123'))
+    print(SH.GET('dev444'))
+
+    print("\nTesting GET-historical\n")
+    print(SH.GETH('dev123', datetime.datetime(2022, 12, 31)))
+    print(SH.GETH('dev123', datetime.datetime(2022, 11, 1)))
+    print(SH.GETH('dev123', datetime.datetime(2023, 2, 24)))
+
+    print("\nTesting SET\n")
+    print(SH.SET('dev555-scalar', 1000))
+    print(SH.GET('dev555-scalar'))
+
+    new_df = pd.DataFrame({
+        'Name': ['Tom', 'nick', 'krish', 'jack'],
+        'Age': [20, 21, 19, 18]
+    })
+    print(new_df)
+    print(SH.SET('dev777-pd', new_df))
+    print(SH.GET('dev777-pd'))
+
+
+    # print(SH.SET('dev123', [[100, 200, 300], [300, 400, 500]]))
+    # print(SH.GETH('dev123', datetime.datetime(2023, 2, 24)))
     # print(SH.GETH('dev123', datetime.datetime(2022, 12, 31)))
     return
 
