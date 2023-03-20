@@ -1,3 +1,18 @@
 {
-    
+  "name": "@shorthandadmin/web-test-01",
+  "version": "0.1.0",
+  "description": "Basic type definitions and accessors for ShorthandAI",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "repository": "https://github.com/shorthandai/shorthandai/tree/main/packages/shorthandai-js",
+  "scripts": {
+    "build": "tsc",
+    "publish": "npm publish --access public"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "cross-fetch": "^3.1.5"
+  }
 }
