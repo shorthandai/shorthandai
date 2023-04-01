@@ -1,0 +1,23 @@
+{
+  "name": "@shorthandai/react",
+  "version": "0.0.1",
+  "description": "Basic type definitions and accessors for ShorthandAI for REact",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "repository": "https://github.com/shorthandai/shorthandai/tree/main/packages/shorthandai-react",
+  "scripts": {
+    "build": "tsc",
+    "publish": "npm publish --access public"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@shorthandai/web": "^0.0.1",
+    "cross-fetch": "^3.1.5",
+    "react": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.0.28"
+  }
+}
