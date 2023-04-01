@@ -1,6 +1,6 @@
 {
   "name": "@shorthandai/react",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "description": "Basic type definitions and accessors for ShorthandAI for REact",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

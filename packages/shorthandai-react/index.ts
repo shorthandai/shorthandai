@@ -24,6 +24,7 @@ export function useShorthandValue(topicName: string, options=DefaultUseShorthand
     const res = await SH.set(topicName, value)
     return res
   }
+
   const getData = useCallback(async () => {
     setLoading(true)
     setError(undefined)
@@ -56,6 +57,8 @@ export function useShorthandValue(topicName: string, options=DefaultUseShorthand
   }, [ getData, options?.pollIntervalMS ])
 
   return ({
+    topicName,
+    options,
     value,
     set,
     loading, 
