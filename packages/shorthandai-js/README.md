@@ -13,7 +13,7 @@ $ yarn add @shorthandai/web
 
 ### Usage
 ```ts
-const token = 'sh-CQSGBczgnM8sDGBr3Tlh'
+const token = 'sh-some-token-here'
 const SH = ShorthandValue({ token })
 console.log(await SH.get('CAH:MLR:2025Y'))
 
