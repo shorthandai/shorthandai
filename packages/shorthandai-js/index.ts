@@ -17,27 +17,27 @@ export type SHValue = SHValueScalar | SHValueVector | SHValueMatrix
 export const ShorthandValue = ({ token }: ShorthandDataAccessProps) => {
 
   const get = async (topicName: string, tag?: string) => {
-    const res = await fetch(
-      `${__API_ROOT_URL__}/get`,
-      {
-        body: JSON.stringify({
-          topicName,
-          tag,
-          token,
-        }),
-        method: 'POST',
-        redirect: 'follow',
-        headers: [[ "Content-Type", "application/json" ]]
-      }
-    )
-
-    if (res.status >= 500) {
-      throw new Error(res.statusText)
-    }
-    if (res.status >= 400) {
-      throw new Error(res.statusText)
-    }
     try {
+      const res = await fetch(
+        `${__API_ROOT_URL__}/get`,
+        {
+          body: JSON.stringify({
+            topicName,
+            tag,
+            token,
+          }),
+          method: 'POST',
+          redirect: 'follow',
+          headers: [[ "Content-Type", "application/json" ]]
+        }
+      )
+  
+      if (res.status >= 500) {
+        throw new Error(res.statusText)
+      }
+      if (res.status >= 400) {
+        throw new Error(res.statusText)
+      }
       const data = await res.json()
       const value = data?.value as SHValue
       return value
@@ -48,26 +48,26 @@ export const ShorthandValue = ({ token }: ShorthandDataAccessProps) => {
   }
 
   const set = async (topicName: string, value: SHValue) => {
-    const res = await fetch(
-      `${__API_ROOT_URL__}/set`,
-      {
-        body: JSON.stringify({
-          topicName,
-          value,
-          token,
-        }),
-        method: 'POST',
-        redirect: 'follow',
-        headers: [[ "Content-Type", "application/json" ]]
-      }
-    )
-    if (res.status >= 500) {
-      throw new Error(res.statusText)
-    }
-    if (res.status >= 400) {
-      throw new Error(res.statusText)
-    }
     try {
+      const res = await fetch(
+        `${__API_ROOT_URL__}/set`,
+        {
+          body: JSON.stringify({
+            topicName,
+            value,
+            token,
+          }),
+          method: 'POST',
+          redirect: 'follow',
+          headers: [[ "Content-Type", "application/json" ]]
+        }
+      )
+      if (res.status >= 500) {
+        throw new Error(res.statusText)
+      }
+      if (res.status >= 400) {
+        throw new Error(res.statusText)
+      }
       const data = await res.json()
       return data
     } catch (e) {
