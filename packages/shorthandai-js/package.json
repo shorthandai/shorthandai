@@ -1,6 +1,6 @@
 {
   "name": "@shorthandai/web",
-  "version": "0.0.2",
+  "version": "0.0.5",
   "description": "Basic type definitions and accessors for ShorthandAI",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
