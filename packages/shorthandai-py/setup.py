@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="shorthandai",                     # This is the name of the package
-    version="0.0.4",                        # The initial release version
+    version="0.0.5",                        # The initial release version
     author="Habanero Research LLC",                     # Full name of the author
     description="Python utilities for interacting with ShorthandAI data",
     long_description=long_description,      # Long description read from the the readme file
@@ -19,5 +19,5 @@ setuptools.setup(
     python_requires='>=3.6',                # Minimum version requirement of the package
     py_modules=["shorthandai"],             # Name of the python package
     package_dir={'':'shorthandai/src'},     # Directory of the source code of the package
-    install_requires=[]                     # Install other dependencies if any
+    install_requires=['requests', 'pandas', 'numpy']                     # Install other dependencies if any
 )
