@@ -5,7 +5,6 @@ import os
 import datetime
 import numpy as np
 import pandas as pd
-import json
 
 __SHORTHAND_AI_TOKEN_ENV_VAR_NAME__ = "SHORTHANDAI_TOKEN"
 __API_ROOT_URL__ = "https://apiv1.shorthand.ai/api/v1"
@@ -94,7 +93,11 @@ class ShorthandAI:
         if take_df_header:
             n, m =  get_raw_value_dimensions(value)
             if n > 0 and m > 0:
-                return pd.DataFrame(value[1:], columns=[value[0]])
+                # pd.DataFrame(value[1:], columns=[value[0]])
+                df = pd.DataFrame(value[1:], columns=[value[0]])
+                if isinstance(df.columns, pd.MultiIndex):
+                    df.columns = list(df.columns.get_level_values(0))
+                return df
 
             if n > 0 or m > 0:
                 return pd.DataFrame(value)
@@ -135,7 +138,11 @@ class ShorthandAI:
         if take_df_header:
             n, m =  get_raw_value_dimensions(value)
             if n > 0 and m > 0:
-                return pd.DataFrame(value[1:], columns=[value[0]])
+                # import pdb; pdb.set_trace()
+                df = pd.DataFrame(value[1:], columns=[value[0]])
+                if isinstance(df.columns, pd.MultiIndex):
+                    df.columns = list(df.columns.get_level_values(0))
+                return df
 
             if n > 0 or m > 0:
                 return pd.DataFrame(value)
@@ -182,7 +189,7 @@ class ShorthandAI:
     
     def info(self):
         return ({
-            "version": '0.0.4',
+            "version": '0.0.5',
         })
 
 def main():
@@ -193,7 +200,7 @@ def main():
     print(SH.GET('dev123'))
     print(SH.GET('dev444'))
 
-    print("\nTesting GET-historical\n")
+    print("\nT)esting GET-historical\n")
     print(SH.GETH('dev123', datetime.datetime(2022, 12, 31)))
     print(SH.GETH('dev123', datetime.datetime(2022, 11, 1)))
     print(SH.GETH('dev123', datetime.datetime(2023, 2, 24)))
@@ -210,10 +217,7 @@ def main():
     print(SH.SET('dev777-pd', new_df))
     print(SH.GET('dev777-pd'))
 
-
-    # print(SH.SET('dev123', [[100, 200, 300], [300, 400, 500]]))
-    # print(SH.GETH('dev123', datetime.datetime(2023, 2, 24)))
-    # print(SH.GETH('dev123', datetime.datetime(2022, 12, 31)))
+    print(SH.GET('dev777-pd').columns)
     return
 
 if __name__=="__main__":
