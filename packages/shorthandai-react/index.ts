@@ -1,4 +1,4 @@
-import ShorthandValue, { SHValue } from '@shorthandai/web';
+import ShorthandValue, { SHValue, SHValueDoc } from '@shorthandai/web';
 import React, { useState, useEffect, useCallback } from 'react';
 
 type UseShorthandValueOptions = {
@@ -15,7 +15,7 @@ const DefaultUseShorthandValueOptions: UseShorthandValueOptions = {
 export function useShorthandValue(topicName: string, options=DefaultUseShorthandValueOptions) {
   const [ loading, setLoading ] = useState(false)
   const [ error, setError ] = useState<string>()
-  const [ value, setValue ] = useState<SHValue>()
+  const [ valueDoc, setValueDoc ] = useState<SHValueDoc>()
   
   const set = async (value: SHValue) => {
     const SH = ShorthandValue({
@@ -33,8 +33,8 @@ export function useShorthandValue(topicName: string, options=DefaultUseShorthand
         token: options?.token,
       })
 
-      const val = await SH.get(topicName)
-      setValue(val) 
+      const doc = await SH.getinfo(topicName)
+      setValueDoc(doc) 
     } catch(e) {
       setError(JSON.stringify(e))
     } finally {
@@ -56,10 +56,21 @@ export function useShorthandValue(topicName: string, options=DefaultUseShorthand
     }
   }, [ getData, options?.pollIntervalMS ])
 
+  const value = valueDoc?.value
+
+  const author = valueDoc?.author
+  const description = valueDoc?.description
+  const updatedTS = valueDoc?.updatedTS
+  const createdTS = valueDoc?.createdTS
+
   return ({
     topicName,
     options,
     value,
+    author,
+    description,
+    updatedTS,
+    createdTS,
     set,
     loading, 
     error,
