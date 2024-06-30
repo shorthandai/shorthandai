@@ -58,4 +58,39 @@ new_df = pd.DataFrame({
 print(new_df)
 print(SH.SET('dev777-pd', new_df))
 print(SH.GET('dev777-pd'))
+
+# Loading large number of topics
+import time
+start_ts = time.time()
+
+get_many_res = list(SH.GETMANY([
+    {
+        "topic_name": "dev123",
+        "tag": '1659994710026'
+    },
+    {
+        "topic_name": "dev444",
+        "tag": '1659994710026'
+    },
+    {
+        "topic_name": "dev444",
+    },
+    {
+        "topic_name": "dev444",
+        "tag": 'latest'
+    },
+    {
+        "topic_name": "dev777-pd",
+    },
+    {
+        "topic_name": "dev555-scalar",
+        "tag": 'latest'
+    }
+] * 100))
+
+end_ts = time.time()
+elapsed = end_ts - start_ts
+print([ str(type(d)) for d in get_many_res ])
+print(f'getmany for {len(get_many_res)} topics in {elapsed}s')
+# getmany for 600 topics in 7.065880060195923s
 ```

@@ -5,6 +5,7 @@ import os
 import datetime
 import numpy as np
 import pandas as pd
+from typing import Iterable, TypedDict, Optional, Union, List
 
 __SHORTHAND_AI_TOKEN_ENV_VAR_NAME__ = "SHORTHANDAI_TOKEN"
 __API_ROOT_URL__ = "https://apiv1.shorthand.ai/api/v1"
@@ -36,6 +37,32 @@ class ShorthandValue:
     
     def info(self):
         return
+    
+
+class SHValueDocRaw(TypedDict):
+    value: Union[str, int, bool, List[Union[str, int, bool]], List[List[Union[str, int, bool]]]]
+
+
+def _handle_raw_data(data: dict, take_df_header: Optional[bool]=True):
+    value = data['value'] if 'value' in data else None
+    if take_df_header:
+        n, m =  get_raw_value_dimensions(value)
+        if n > 0 and m > 0:
+            # pd.DataFrame(value[1:], columns=[value[0]])
+            df = pd.DataFrame(value[1:], columns=[value[0]])
+            if isinstance(df.columns, pd.MultiIndex):
+                df.columns = list(df.columns.get_level_values(0))
+            return df
+
+        if n > 0 or m > 0:
+            return pd.DataFrame(value)
+
+    return value
+    
+
+class GetManyTopic(TypedDict):
+    topic_name: str
+    tag: Optional[Union[str, int]]
 
 class ShorthandAI:
     def __init__(self, token: str=None):
@@ -79,9 +106,11 @@ class ShorthandAI:
 
         return data
     
+    
     def get(self, topic_name: str, tag: str=None, take_df_header=True):
         """
-        Given `topic_name`, returns the latest value
+        Given `topic_name`, returns the latest value (or tagged value, 
+        if provided)
         """
         check_value_inputs(self.__token, topic_name=topic_name)
         data = self.get_raw(
@@ -89,20 +118,38 @@ class ShorthandAI:
             tag=tag,
             take_df_header=take_df_header
         )
-        value = data['value'] if 'value' in data else None
-        if take_df_header:
-            n, m =  get_raw_value_dimensions(value)
-            if n > 0 and m > 0:
-                # pd.DataFrame(value[1:], columns=[value[0]])
-                df = pd.DataFrame(value[1:], columns=[value[0]])
-                if isinstance(df.columns, pd.MultiIndex):
-                    df.columns = list(df.columns.get_level_values(0))
-                return df
+        return _handle_raw_data(data)
+    
+    def get_many(self, topics: Iterable[GetManyTopic], take_df_header=True):
+        """
+        Given `topics`, returns their values
+        """
 
-            if n > 0 or m > 0:
-                return pd.DataFrame(value)
+        check_value_inputs(self.__token, topic_name=None)
+        res = requests.post(
+            f"{__API_ROOT_URL__}/getmany",
+            json={
+                "topics": [
+                    {
+                        "topicName": t['topic_name'],
+                        "tag": t['tag'] if 'tag' in t else None
+                    } for t in topics
+                ],
+                "token": self.__token
+            }
+        )
 
-        return value
+        status_code = res.status_code
+        if (res.status_code >= 400 and res.status_code  <= 500):
+            raise Exception(f"ERR {status_code}") 
+        
+        if (res.status_code >= 500):
+            raise Exception(f"ERR {status_code}") 
+        
+        data = res.json()
+
+        for datum in data:
+            yield _handle_raw_data(datum)
     
 
     def geth(
@@ -186,6 +233,8 @@ class ShorthandAI:
     GET = get
     GETH = geth
     SET = set
+    GETMANY = get_many
+    getmany = get_many
     
     def info(self):
         return ({
@@ -193,6 +242,7 @@ class ShorthandAI:
         })
 
 def main():
+    import time
     SH = ShorthandAI('demo')
     print(SH.info())
     print(SH.GET('dev123', '1659994710026'))
@@ -218,6 +268,65 @@ def main():
     print(SH.GET('dev777-pd'))
 
     print(SH.GET('dev777-pd').columns)
+    print("\nTesting GETMANY\n")
+    print(list(SH.GETMANY([
+        {
+            "topic_name": "dev123",
+            "tag": '1659994710026'
+        },
+        {
+            "topic_name": "dev444",
+            "tag": '1659994710026'
+        },
+        {
+            "topic_name": "dev444",
+        },
+        {
+            "topic_name": "dev444",
+            "tag": 'latest'
+        },
+        {
+            "topic_name": "dev555-scalar",
+            "tag": '1000'
+        },
+        {
+            "topic_name": "dev555-scalar",
+            "tag": 'latest'
+        }
+    ])))
+
+    start_ts = time.time()
+
+    get_many_res = list(SH.GETMANY([
+        {
+            "topic_name": "dev123",
+            "tag": '1659994710026'
+        },
+        {
+            "topic_name": "dev444",
+            "tag": '1659994710026'
+        },
+        {
+            "topic_name": "dev444",
+        },
+        {
+            "topic_name": "dev444",
+            "tag": 'latest'
+        },
+        {
+            "topic_name": "dev777-pd",
+        },
+        {
+            "topic_name": "dev555-scalar",
+            "tag": 'latest'
+        }
+    ] * 100))
+    
+    end_ts = time.time()
+    elapsed = end_ts - start_ts
+    print([ str(type(d)) for d in get_many_res ])
+    print(f'getmany for {len(get_many_res)} topics in {elapsed}s')
+    
     return
 
 if __name__=="__main__":
