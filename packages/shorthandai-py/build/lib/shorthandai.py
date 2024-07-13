@@ -64,6 +64,11 @@ class GetManyTopic(TypedDict):
     topic_name: str
     tag: Optional[Union[str, int]]
 
+
+class GetHistoricalTopic(TypedDict):
+    topic_name: str
+    asOf: datetime.datetime
+
 class ShorthandAI:
     def __init__(self, token: str=None):
         self.__token = token if (token and len(token)) else os.environ.get(__SHORTHAND_AI_TOKEN_ENV_VAR_NAME__)
@@ -149,8 +154,39 @@ class ShorthandAI:
         data = res.json()
 
         for datum in data:
-            yield _handle_raw_data(datum)
+            yield _handle_raw_data(datum, take_df_header=take_df_header)
     
+    def geth_many(self, topics: Iterable[GetHistoricalTopic], take_df_header=True):
+        """
+        Given `topics`, returns their values as of the specified timestamp
+        """
+
+        check_value_inputs(self.__token, topic_name=None)
+        res = requests.post(
+            f"{__API_ROOT_URL__}/gethmany",
+            json={
+                "topics": [
+                    {
+                        "topicName": t['topic_name'],
+                        "asOfTs": int(t['asOf'].timestamp() * 1000) if ('asOf' in t) else None,
+                        # "tag": t['tag'] if 'tag' in t else None
+                    } for t in topics
+                ],
+                "token": self.__token
+            }
+        )
+
+        status_code = res.status_code
+        if (res.status_code >= 400 and res.status_code  <= 500):
+            raise Exception(f"ERR {status_code}") 
+        
+        if (res.status_code >= 500):
+            raise Exception(f"ERR {status_code}") 
+        
+        data = res.json()
+
+        for datum in data:
+            yield _handle_raw_data(datum, take_df_header=take_df_header)
 
     def geth(
             self, 
@@ -167,7 +203,7 @@ class ShorthandAI:
             f"{__API_ROOT_URL__}/geth",
             json={
                 "topicName": topic_name,
-                "sinceTS": int(since.timestamp() * 1000),
+                "asOfTs": int(since.timestamp() * 1000),
                 "token": self.__token
             }
         )
@@ -180,21 +216,8 @@ class ShorthandAI:
             raise Exception(f"ERR {status_code}") 
         
         data = res.json()
-        value = data['value'] if 'value' in data else None
 
-        if take_df_header:
-            n, m =  get_raw_value_dimensions(value)
-            if n > 0 and m > 0:
-                # import pdb; pdb.set_trace()
-                df = pd.DataFrame(value[1:], columns=[value[0]])
-                if isinstance(df.columns, pd.MultiIndex):
-                    df.columns = list(df.columns.get_level_values(0))
-                return df
-
-            if n > 0 or m > 0:
-                return pd.DataFrame(value)
-
-        return value
+        return _handle_raw_data(data, take_df_header=take_df_header)
 
 
     def set(self, topic_name: str, value):
@@ -238,7 +261,7 @@ class ShorthandAI:
     
     def info(self):
         return ({
-            "version": '0.0.5',
+            "version": '0.0.8',
         })
 
 def main():

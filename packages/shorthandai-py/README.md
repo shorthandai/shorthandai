@@ -59,6 +59,16 @@ print(new_df)
 print(SH.SET('dev777-pd', new_df))
 print(SH.GET('dev777-pd'))
 
+
+geth_many_res = list(SH.GETMANY([
+    { "topic_name": "dev123", "asOf": datetime.datetime(2024, 4, 18, 15, 0, 0) },
+    { "topic_name": 'dev123', "asOf": datetime.datetime(2022, 12, 31)   },
+    { "topic_name": 'dev123', "asOf": datetime.datetime(2022, 11, 1)    },
+    { "topic_name": 'dev123', "asOf": datetime.datetime(2023, 2, 24)    }
+]))
+
+print(geth_many_res)
+
 # Loading large number of topics
 import time
 start_ts = time.time()
