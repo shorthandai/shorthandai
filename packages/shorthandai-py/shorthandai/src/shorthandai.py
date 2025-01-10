@@ -69,6 +69,11 @@ class GetHistoricalTopic(TypedDict):
     topic_name: str
     asOf: datetime.datetime
 
+class SetManyTopic(TypedDict):
+    topic_name: str
+    value: Union[str, int, bool, List[Union[str, int, bool]], List[List[Union[str, int, bool]]]]
+    tag: Optional[str]
+
 class ShorthandAI:
     def __init__(self, token: str=None):
         self.__token = token if (token and len(token)) else os.environ.get(__SHORTHAND_AI_TOKEN_ENV_VAR_NAME__)
@@ -123,7 +128,8 @@ class ShorthandAI:
             tag=tag,
             take_df_header=take_df_header
         )
-        return _handle_raw_data(data)
+
+        return _handle_raw_data(data, take_df_header=take_df_header)
     
     def get_many(self, topics: Iterable[GetManyTopic], take_df_header=True):
         """
@@ -156,6 +162,55 @@ class ShorthandAI:
         for datum in data:
             yield _handle_raw_data(datum, take_df_header=take_df_header)
     
+    def set_many(self, topics: Iterable[SetManyTopic]):
+        """
+        Given `topics`, writes their values to Shorthand in batch
+        
+        Args:
+            topics: An iterable of topics, where each topic has:
+                - topic_name: The name of the topic
+                - value: The value to set
+                - tag (optional): A tag for the value
+                
+        Returns:
+            A list of response data for each topic
+        """
+        check_value_inputs(self.__token, topic_name=None)
+        
+        # Transform pandas DataFrames to lists if present
+        processed_topics = []
+        for topic in topics:
+            value_out = topic['value']
+            if isinstance(value_out, pd.DataFrame):
+                first_row = list(value_out.columns.values)
+                value_out = value_out.values.tolist()
+                value_out = [first_row] + value_out
+                
+            processed_topic = {
+                "topicName": topic['topic_name'],
+                "value": value_out
+            }
+            if 'tag' in topic:
+                processed_topic["tag"] = topic['tag']
+            processed_topics.append(processed_topic)
+
+        res = requests.post(
+            f"{__API_ROOT_URL__}/setmany",
+            json={
+                "topics": processed_topics,
+                "token": self.__token
+            }
+        )
+
+        status_code = res.status_code
+        if (res.status_code >= 400 and res.status_code <= 500):
+            raise Exception(f"ERR {status_code}")
+        
+        if (res.status_code >= 500):
+            raise Exception(f"ERR {status_code}")
+        
+        return res.json()
+        
     def geth_many(self, topics: Iterable[GetHistoricalTopic], take_df_header=True):
         """
         Given `topics`, returns their values as of the specified timestamp
@@ -261,16 +316,16 @@ class ShorthandAI:
     
     def info(self):
         return ({
-            "version": '0.0.8',
+            "version": '0.0.11',
         })
 
 def main():
     import time
-    SH = ShorthandAI('demo')
+    SH = ShorthandAI('sh-1f64dvvvnon4NFt0yl0H')
     print(SH.info())
     print(SH.GET('dev123', '1659994710026'))
     print(SH.GET('dev123', 'notexists'))
-    print(SH.GET('dev123'))
+    print('latest dev123:', SH.GET('dev123'))
     print(SH.GET('dev444'))
 
     print("\nT)esting GET-historical\n")
@@ -349,6 +404,42 @@ def main():
     elapsed = end_ts - start_ts
     print([ str(type(d)) for d in get_many_res ])
     print(f'getmany for {len(get_many_res)} topics in {elapsed}s')
+
+    print("\nTesting SET_MANY\n")
+
+    new_df = pd.DataFrame({
+        'Name': ['Alice', 'Bob', 'Charlie'],
+        'Score': [95, 87, 92]
+    })
+
+    set_many_res = SH.set_many([
+        {
+            "topic_name": "dev101",
+            "value": 301
+        },
+        {
+            "topic_name": "dev102",
+            "tag": "easy",
+            "value": 101
+        },
+        {
+            "topic_name": "dev103-pd",
+            "value": new_df
+        }
+    ])
+    print("Set many response:", set_many_res)
+
+    # Verify the values were set
+    get_many_res = list(SH.GETMANY([
+        {"topic_name": "dev101", "tag": "latest"},
+        {"topic_name": "dev102", "tag": "easy"},
+        {"topic_name": "dev103-pd"}
+    ]))
+    
+    print("Verification get:", get_many_res)
+
+    get_res = SH.GET("dev103-pd")
+    print("Verification get dev103-pd:", get_res)
     
     return
 

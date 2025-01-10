@@ -103,4 +103,40 @@ elapsed = end_ts - start_ts
 print([ str(type(d)) for d in get_many_res ])
 print(f'getmany for {len(get_many_res)} topics in {elapsed}s')
 # getmany for 600 topics in 7.065880060195923s
+
+print("\nTesting SET_MANY\n")
+
+new_df = pd.DataFrame({
+    'Name': ['Alice', 'Bob', 'Charlie'],
+    'Score': [95, 87, 92]
+})
+
+set_many_res = SH.set_many([
+    {
+        "topic_name": "dev101",
+        "value": 301
+    },
+    {
+        "topic_name": "dev102",
+        "tag": "easy",
+        "value": 101
+    },
+    {
+        "topic_name": "dev103-pd",
+        "value": new_df
+    }
+])
+print("Set many response:", set_many_res)
+
+# Verify the values were set
+get_many_res = list(SH.GETMANY([
+    {"topic_name": "dev101", "tag": "latest"},
+    {"topic_name": "dev102", "tag": "easy"},
+    {"topic_name": "dev103-pd"}
+]))
+
+print("Verification get:", get_many_res)
+
+get_res = SH.GET("dev103-pd")
+print("Verification get dev103-pd:", get_res)
 ```
